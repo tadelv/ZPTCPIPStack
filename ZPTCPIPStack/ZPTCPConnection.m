@@ -62,7 +62,7 @@ err_t zp_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
             }
         });
         pbuf_free(p);
-        tcp_recved(tpcb, p->tot_len, conn.block);
+        tcp_recved(tpcb, p->tot_len);
         return ERR_OK;
     } else {
         return ERR_INPROGRESS;
@@ -134,123 +134,7 @@ void zp_tcp_err(void *arg, err_t err)
                           pbuf:(struct pbuf *)pbuf
 {
     self = [super init];
-    if (self) {
-        _tunnel = tunnel;
-        _identifie = identifie;
-        _block = &tcp_block;
-        _block->ip_data = *ipData;
-        _block->tcpInfo = *tcpInfo;
-        _block->tcp_ticks = 0;
-        _block->tcp_timer = 0;
-        _block->close_after_writing = 0;
-        
-        _canReadData = FALSE;
-        
-        if (_block->tcpInfo.flags & TCP_RST) {
-            /* An incoming RST should be ignored. Return. */
-            return NULL;
-        }
-        
-        /* In the LISTEN state, we check for incoming SYN segments,
-         creates a new PCB, and responds with a SYN|ACK. */
-        if (_block->tcpInfo.flags & TCP_ACK) {
-            /* For incoming segments with the ACK flag set, respond with a
-             RST. */
-            LWIP_DEBUGF(TCP_RST_DEBUG, ("tcp_listen_input: ACK in LISTEN, sending reset\n"));
-            tcp_rst(_block->tcpInfo.ackno, _block->tcpInfo.seqno + _block->tcpInfo.tcplen,
-                    (&_block->ip_data.current_iphdr_dest), (&_block->ip_data.current_iphdr_src),
-                    _block->tcpInfo.tcphdr->dest, _block->tcpInfo.tcphdr->src,
-                    _block);
-            return NULL;
-            
-        } else if (_block->tcpInfo.flags & TCP_SYN) {
-            LWIP_DEBUGF(TCP_DEBUG, ("TCP connection request %"U16_F" -> %"U16_F".\n", _block->tcpInfo.tcphdr->src, _block->tcpInfo.tcphdr->dest));
-            struct tcp_pcb *npcb = tcp_alloc(TCP_PRIO_NORMAL);
-            /* If a new PCB could not be created (probably due to lack of memory),
-             we don't do anything, but rely on the sender will retransmit the
-             SYN at a time when we have more memory available. */
-            if (npcb == NULL) {
-                LWIP_DEBUGF(TCP_DEBUG, ("tcp_listen_input: could not allocate PCB\n"));
-                TCP_STATS_INC(tcp.memerr);
-                return NULL;
-            }
-            _block->pcb = npcb;
-            /* Set up the new PCB. */
-            ip_addr_copy(npcb->local_ip, _block->ip_data.current_iphdr_dest);
-            ip_addr_copy(npcb->remote_ip, _block->ip_data.current_iphdr_src);
-            npcb->local_port = _block->tcpInfo.tcphdr->dest;
-            npcb->remote_port = _block->tcpInfo.tcphdr->src;
-            npcb->state = SYN_RCVD;
-            npcb->rcv_nxt = _block->tcpInfo.seqno + 1;
-            npcb->rcv_ann_right_edge = npcb->rcv_nxt;
-            u32_t iss = tcp_next_iss(npcb, _block);
-            npcb->snd_wl2 = iss;
-            npcb->snd_nxt = iss;
-            npcb->lastack = iss;
-            npcb->snd_lbb = iss;
-            npcb->snd_wl1 = _block->tcpInfo.seqno - 1;/* initialise to seqno-1 to force window update */
-            npcb->callback_arg = (__bridge void *)(self);
-#if LWIP_CALLBACK_API || TCP_LISTEN_BACKLOG
-            npcb->listener = NULL;
-#endif /* LWIP_CALLBACK_API || TCP_LISTEN_BACKLOG */
-            /* inherit socket options */
-            npcb->so_options = SOF_KEEPALIVE;
-            
-            /* lwIP's `NETCONN_TCP_POLL_INTERVAL` is set to 2,
-             so we stay the same, let pcb poll once per second */
-            npcb->polltmr = 0;
-            npcb->pollinterval = 2;
-            
-            /* set callback func */
-            npcb->sent      = zp_tcp_sent;
-            npcb->recv      = zp_tcp_recv;
-            npcb->connected = zp_tcp_connected;
-            npcb->poll      = zp_tcp_poll;
-            npcb->errf      = zp_tcp_err;
-            
-            /* Parse any options in the SYN. */
-            tcp_parseopt(npcb, _block);
-            npcb->snd_wnd = _block->tcpInfo.tcphdr->wnd;
-            npcb->snd_wnd_max = npcb->snd_wnd;
-            
-#if TCP_CALCULATE_EFF_SEND_MSS
-            npcb->mss = tcp_eff_send_mss(npcb->mss, &npcb->local_ip, &npcb->remote_ip, _block);
-#endif /* TCP_CALCULATE_EFF_SEND_MSS */
-            
-            MIB2_STATS_INC(mib2.tcppassiveopens);
-            
-            /* Send a SYN|ACK together with the MSS option. */
-            err_t rc = tcp_enqueue_flags(npcb, TCP_SYN | TCP_ACK);
-            if (rc != ERR_OK) {
-                tcp_abandon(npcb, 0, _block);
-                return NULL;
-            }
-            tcp_output(npcb, _block);
-            
-            /* set timer queue */
-            _timerQueue = dispatch_queue_create("ZPTCPConnection.timerQueue", NULL);
-            dispatch_queue_set_specific(_timerQueue, IsOnTimerQueueKey, (__bridge void *)(_timerQueue), NULL);
-            
-            /* set timer */
-            _timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _timerQueue);
-            /* lwIP's doc suggest run the timer checkout 4 times per second */
-            int64_t interval = NSEC_PER_SEC * 0.25;
-            dispatch_time_t start = dispatch_time(DISPATCH_TIME_NOW, interval);
-            dispatch_source_set_timer(_timer, start, interval, interval);
-            dispatch_source_set_event_handler(_timer, ^{
-                struct tcp_pcb *pcb = _block->pcb;
-                if (pcb == NULL) {
-                    dispatch_source_cancel(_timer);
-                    [_tunnel removeConnectionForKey:_identifie];
-                } else {
-                    tcp_tmr(_block);
-                }
-            });
-            dispatch_resume(_timer);
-        } else {
-            return NULL;
-        }
-    }
+    
     return self;
 }
 
@@ -320,7 +204,7 @@ void zp_tcp_err(void *arg, err_t err)
         }
         err_t err = tcp_write(pcb, data.bytes, data.length, TCP_WRITE_FLAG_COPY);
         if (err == ERR_OK) {
-            tcp_output(pcb, _block);
+            tcp_output(pcb);
         } else {
             NSString *errDomain;
             if (err == ERR_CONN) {
@@ -358,7 +242,7 @@ void zp_tcp_err(void *arg, err_t err)
         if (pcb == NULL) {
             return;
         }
-        tcp_close(pcb, _block);
+        tcp_close(pcb);
     });
 }
 

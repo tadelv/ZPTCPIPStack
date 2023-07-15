@@ -17,6 +17,7 @@
 #include "lwip/inet_chksum.h"
 #include "lwip/ip4_frag.h"
 #include "lwip/ip6_frag.h"
+#include "lwip/altcp_tls.h"
 
 #if LWIP_IPV4 && LWIP_IPV6 /* LWIP_IPV4 && LWIP_IPV6 */
 

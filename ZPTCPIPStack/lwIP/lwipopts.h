@@ -5,6 +5,10 @@
 #define NO_SYS                  1
 #define LWIP_TIMERS             0
 
+//  IPv4 & IPv6 options
+#define LWIP_IPV4                  1
+#define LWIP_IPV6                  1
+
 //  Core locking
 #define LWIP_TCPIP_CORE_LOCKING 0
 #define SYS_LIGHTWEIGHT_PROT    0
@@ -29,15 +33,30 @@
 //  UDP options
 #define LWIP_UDP                0
 
-//  TCP options
+/* ---------- TCP options ---------- */
+#define LWIP_TCP                1
+#define TCP_TTL                 255
+#define LWIP_HAVE_MBEDTLS 1
+#ifndef LWIP_MBEDTLSDIR
+#define LWIP_MBEDTLSDIR "../../mbedtls/"
+#endif
+
+#define LWIP_ALTCP              (LWIP_TCP)
+#ifdef LWIP_HAVE_MBEDTLS
+#define LWIP_ALTCP_TLS          (LWIP_TCP)
+#define LWIP_ALTCP_TLS_MBEDTLS  (LWIP_TCP)
+#endif
+
 /*
  * `65535`: the maximum IP packet size
  * `60`: max IP header length
  * `60`: max TCP header length
  */
-#define TCP_WND                 (65535)
-#define TCP_MSS                 (TCP_WND / 2)
-#define TCP_SND_BUF             (TCP_WND)
+#define TCP_WND                 (20* 1024)
+// #define TCP_MSS                 (TCP_WND / 2)
+// #define TCP_SND_BUF             (TCP_WND)
+#define TCP_MSS                 1024
+#define TCP_SND_BUF             2048
 #define LWIP_EVENT_API          0
 #define LWIP_CALLBACK_API       1
 
@@ -54,9 +73,6 @@
 //  Statistics options
 #define LWIP_STATS              0
 
-//  IPv6 options
-#define LWIP_IPV6               1
-
 //  PPP options
 #define PPP_SUPPORT             0
 
@@ -64,7 +80,7 @@
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
 
 //  Debug
-//#define LWIP_DEBUG              LWIP_DBG_ON
-//#define IP_DEBUG                LWIP_DBG_ON
+#define LWIP_DEBUG              LWIP_DBG_ON
+#define IP_DEBUG                LWIP_DBG_ON
 
 #endif /* LWIP_CUSTOM_LWIPOPTS_H */
