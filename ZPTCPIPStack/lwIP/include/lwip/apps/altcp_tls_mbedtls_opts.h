@@ -46,21 +46,18 @@
 /** LWIP_ALTCP_TLS_MBEDTLS==1: use mbedTLS for TLS support for altcp API
  * mbedtls include directory must be reachable via include search path
  */
-#ifndef LWIP_MBEDTLSDIR
-#define LWIP_MBEDTLSDIR "../../mbedtls/"
-#endif
 #ifndef LWIP_ALTCP_TLS_MBEDTLS
-#define LWIP_ALTCP_TLS_MBEDTLS                        1
+#define LWIP_ALTCP_TLS_MBEDTLS                        0
 #endif
 
 /** Configure debug level of this file */
 #ifndef ALTCP_MBEDTLS_DEBUG
-#define ALTCP_MBEDTLS_DEBUG                           LWIP_DBG_ON
+#define ALTCP_MBEDTLS_DEBUG                           LWIP_DBG_OFF
 #endif
 
 /** Configure lwIP debug level of the mbedTLS library */
 #ifndef ALTCP_MBEDTLS_LIB_DEBUG
-#define ALTCP_MBEDTLS_LIB_DEBUG                       LWIP_DBG_ON
+#define ALTCP_MBEDTLS_LIB_DEBUG                       LWIP_DBG_OFF
 #endif
 
 /** Configure minimum internal debug level of the mbedTLS library */
