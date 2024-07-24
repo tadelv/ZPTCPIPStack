@@ -39,7 +39,7 @@
 #define LWIP_IPV4                  1
 #define LWIP_IPV6                  1
 
-#define NO_SYS                     0
+//#define NO_SYS                     0
 
 // #define LWIP_HAVE_MBEDTLS
 
@@ -71,7 +71,7 @@
 #define LWIP_SO_RCVTIMEO           1
 #define LWIP_SO_RCVBUF             1
 
-#define LWIP_TCPIP_CORE_LOCKING    1
+//#define LWIP_TCPIP_CORE_LOCKING    1
 
 #define LWIP_NETIF_LINK_CALLBACK        1
 #define LWIP_NETIF_STATUS_CALLBACK      1
@@ -118,6 +118,34 @@
 /* MSVC port: intel processors don't need 4-byte alignment,
    but are faster that way! */
 #define MEM_ALIGNMENT           4U
+
+//  NO SYS
+#define NO_SYS                  1
+#define LWIP_TIMERS             1
+
+//  Core locking
+#define LWIP_TCPIP_CORE_LOCKING 0
+#define SYS_LIGHTWEIGHT_PROT    0
+
+//  Memory options
+#define MEM_LIBC_MALLOC         1
+#define MEMP_MEM_MALLOC         1
+/*
+ https://developer.apple.com/library/content/documentation/Performance/Conceptual/ManagingMemory/Articles/MemoryAlloc.html
+ */
+#define MEM_ALIGNMENT           16 /* or 8 ? uncertainly... */
+
+//  IP options
+#define IP_FRAG                 0
+
+//  ARP options
+#define LWIP_ARP                0
+
+//  ICMP options
+#define LWIP_ICMP               0
+
+//  UDP options
+#define LWIP_UDP                0
 
 /* MEM_SIZE: the size of the heap memory. If the application will send
 a lot of data that needs to be copied, this should be set high. */
@@ -171,7 +199,7 @@ a lot of data that needs to be copied, this should be set high. */
  * for certain critical regions during buffer allocation, deallocation and memory
  * allocation and deallocation.
  */
-#define SYS_LIGHTWEIGHT_PROT    (NO_SYS==0)
+//#define SYS_LIGHTWEIGHT_PROT    (NO_SYS==0)
 
 
 /* ---------- TCP options ---------- */
@@ -215,7 +243,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- ARP options ---------- */
-#define LWIP_ARP                1
+//#define LWIP_ARP                1
 #define ARP_TABLE_SIZE          10
 #define ARP_QUEUEING            1
 
@@ -231,7 +259,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define IP_REASSEMBLY           1
 #define IP_REASS_MAX_PBUFS      (10 * ((1500 + PBUF_POOL_BUFSIZE - 1) / PBUF_POOL_BUFSIZE))
 #define MEMP_NUM_REASSDATA      IP_REASS_MAX_PBUFS
-#define IP_FRAG                 1
+//#define IP_FRAG                 1
 #define IPV6_FRAG_COPYHEADER    1
 
 /* ---------- ICMP options ---------- */
@@ -254,7 +282,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- UDP options ---------- */
-#define LWIP_UDP                1
+//#define LWIP_UDP                1
 #define LWIP_UDPLITE            LWIP_UDP
 #define UDP_TTL                 255
 
@@ -265,8 +293,8 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- Statistics options ---------- */
 
-#define LWIP_STATS              1
-#define LWIP_STATS_DISPLAY      1
+#define LWIP_STATS              0
+#define LWIP_STATS_DISPLAY      0
 
 #if LWIP_STATS
 #define LINK_STATS              1
